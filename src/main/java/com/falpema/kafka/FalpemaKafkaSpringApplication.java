@@ -11,9 +11,9 @@ public class FalpemaKafkaSpringApplication {
 	
 	private static final Logger log = LoggerFactory.getLogger(FalpemaKafkaSpringApplication.class);
 	
-	@KafkaListener(topics = "falpema-topic", groupId= "falpema-group")
+	@KafkaListener(topics = "devs4j-topic", groupId= "devs4j-group")
 	public void listen(String message) {
-		log.info("Message received",message);
+		log.info("Message received {} ",message);
 	}
 	
 	public static void main(String[] args) {
