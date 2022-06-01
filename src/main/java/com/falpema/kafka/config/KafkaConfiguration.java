@@ -16,6 +16,11 @@ import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.core.MicrometerProducerListener;
+
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.prometheus.PrometheusConfig;
+import io.micrometer.prometheus.PrometheusMeterRegistry;
 
 @Configuration
 public class KafkaConfiguration {
@@ -42,6 +47,7 @@ public class KafkaConfiguration {
 	@Bean
 	public KafkaTemplate<String,String> KafkaTemplate(){
 		DefaultKafkaProducerFactory<String,String> producerFactory = new DefaultKafkaProducerFactory<>(producerProperties());
+		producerFactory.addListener(new MicrometerProducerListener<String,String>(meterRegistry()));
 		KafkaTemplate<String, String> template = new KafkaTemplate<> (producerFactory);
 		return template;
 	}
@@ -58,6 +64,13 @@ public class KafkaConfiguration {
 		listenerContainerFactory.setBatchListener(true);
 		listenerContainerFactory.setConcurrency(3);
 		return listenerContainerFactory;
+	}
+	
+	@Bean
+	public MeterRegistry meterRegistry() {
+		PrometheusMeterRegistry meterRegistry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
+		return meterRegistry;	
 		
 	}
+	
 }
