@@ -1,5 +1,7 @@
 package com.falpema.kafka;
 
+import java.util.concurrent.TimeUnit;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +34,8 @@ public class FalpemaKafkaSpringApplication implements CommandLineRunner {
 
 	@Override
 	public void run(String... args) throws Exception {
-		ListenableFuture<SendResult<String, String>> future = kafkaTemplate.send("devs4j-topic", "Sample message");
+		kafkaTemplate.send("devs4j","Sample message ").get(100,TimeUnit.MILLISECONDS);
+		/*ListenableFuture<SendResult<String, String>> future = kafkaTemplate.send("devs4j-topic", "Sample message");
 		future.addCallback(new KafkaSendCallback<String, String>() {
 
 			@Override
@@ -52,7 +55,7 @@ public class FalpemaKafkaSpringApplication implements CommandLineRunner {
 				log.error("Error sending message ", ex);
 
 			}
-		});
+		});*/
 
 	}
 
