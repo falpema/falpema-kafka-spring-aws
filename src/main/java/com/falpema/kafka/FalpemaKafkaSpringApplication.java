@@ -1,5 +1,6 @@
 package com.falpema.kafka;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -23,9 +24,15 @@ public class FalpemaKafkaSpringApplication implements CommandLineRunner {
 	@Autowired
 	private KafkaTemplate<String, String> kafkaTemplate;
 
-	@KafkaListener(topics = "devs4j-topic", groupId = "devs4j-group")
-	public void listen(String message) {
-		log.info("Message received {} ", message);
+	@KafkaListener(topics = "devs4j-topic",containerFactory="listenerContainerFactory", groupId = "devs4j-group",
+			properties= {"max.poll.interval.ms:4000",
+					"max.poll.records:10"})
+	public void listen(List<String> messages) {
+		log.info("start reading messages");
+		for (String message : messages) {
+			log.info("Message received = {} ", message);
+		}
+		log.info("Batch complete");
 	}
 
 	public static void main(String[] args) {
@@ -34,8 +41,12 @@ public class FalpemaKafkaSpringApplication implements CommandLineRunner {
 
 	@Override
 	public void run(String... args) throws Exception {
-		kafkaTemplate.send("devs4j","Sample message ").get(100,TimeUnit.MILLISECONDS);
-		/*ListenableFuture<SendResult<String, String>> future = kafkaTemplate.send("devs4j-topic", "Sample message");
+		for (int i=0; i<100;i++) {
+			kafkaTemplate.send("devs4j-topic",String.format("Sample message %d",i)); 
+		}
+		
+		/*kafkaTemplate.send("devs4j","Sample message ").get(100,TimeUnit.MILLISECONDS); //sincronus */
+		/*ListenableFuture<SendResult<String, String>> future = kafkaTemplate.send("devs4j-topic", "Sample message"); 
 		future.addCallback(new KafkaSendCallback<String, String>() {
 
 			@Override
