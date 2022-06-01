@@ -3,6 +3,7 @@ package com.falpema.kafka;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,10 +28,11 @@ public class FalpemaKafkaSpringApplication implements CommandLineRunner {
 	@KafkaListener(topics = "devs4j-topic",containerFactory="listenerContainerFactory", groupId = "devs4j-group",
 			properties= {"max.poll.interval.ms:4000",
 					"max.poll.records:10"})
-	public void listen(List<String> messages) {
+	public void listen(List<ConsumerRecord<String,String>> messages) {
 		log.info("start reading messages");
-		for (String message : messages) {
-			log.info("Message received = {} ", message);
+		for (ConsumerRecord<String, String> message : messages) {
+			log.info("Partition = {}, Offset = {}, key = {}, Value = {} ", message.partition(),message.offset()
+					, message.key() , message.value());
 		}
 		log.info("Batch complete");
 	}
@@ -42,7 +44,7 @@ public class FalpemaKafkaSpringApplication implements CommandLineRunner {
 	@Override
 	public void run(String... args) throws Exception {
 		for (int i=0; i<100;i++) {
-			kafkaTemplate.send("devs4j-topic",String.format("Sample message %d",i)); 
+			kafkaTemplate.send("devs4j-topic",String.valueOf(i),String.format("Sample message %d",i)); 
 		}
 		
 		/*kafkaTemplate.send("devs4j","Sample message ").get(100,TimeUnit.MILLISECONDS); //sincronus */
