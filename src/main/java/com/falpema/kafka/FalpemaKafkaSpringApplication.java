@@ -16,22 +16,27 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.KafkaProducerException;
 import org.springframework.kafka.core.KafkaSendCallback;
 import org.springframework.kafka.support.SendResult;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.util.concurrent.ListenableFuture;
 
-@SpringBootApplication
-public class FalpemaKafkaSpringApplication implements CommandLineRunner {
+import io.micrometer.core.instrument.Meter;
+import io.micrometer.core.instrument.MeterRegistry;
 
+@SpringBootApplication
+public class FalpemaKafkaSpringApplication  {
+	
+	@Autowired
+	private MeterRegistry meterRegistry ;
+	
 	private static final Logger log = LoggerFactory.getLogger(FalpemaKafkaSpringApplication.class);
 
 	@Autowired
 	private KafkaTemplate<String, String> kafkaTemplate;
 	
-	@Autowired
-	private KafkaListenerEndpointRegistry registry;
 
-	@KafkaListener(id="devs4jId", autoStartup="false",topics = "devs4j-topic",containerFactory="listenerContainerFactory", groupId = "devs4j-group",
+	@KafkaListener(id="devs4jId", autoStartup="true",topics = "devs4j-topic",containerFactory="listenerContainerFactory", groupId = "devs4j-group",
 			properties= {"max.poll.interval.ms:4000",
-					"max.poll.records:10"})
+					"max.poll.records:50"})
 	public void listen(List<ConsumerRecord<String,String>> messages) {
 		log.info("start reading messages");
 		for (ConsumerRecord<String, String> message : messages) {
@@ -45,40 +50,25 @@ public class FalpemaKafkaSpringApplication implements CommandLineRunner {
 		SpringApplication.run(FalpemaKafkaSpringApplication.class, args);
 	}
 
-	@Override
-	public void run(String... args) throws Exception {
-		for (int i=0; i<100;i++) {
+
+	
+	@Scheduled(fixedDelay = 2000,initialDelay = 100)
+	public void sendKafkaMessages() {
+		for (int i=0; i<200;i++) {
 			kafkaTemplate.send("devs4j-topic",String.valueOf(i),String.format("Sample message %d",i)); 
 		}
-		log.info("waiting to start");
-		Thread.sleep(5000);
-		log.info("starting");
-		registry.getListenerContainer("devs4jId").start();
-		Thread.sleep(5000);
-		registry.getListenerContainer("devs4jId").stop();;
-		/*kafkaTemplate.send("devs4j","Sample message ").get(100,TimeUnit.MILLISECONDS); //sincronus */
-		/*ListenableFuture<SendResult<String, String>> future = kafkaTemplate.send("devs4j-topic", "Sample message"); 
-		future.addCallback(new KafkaSendCallback<String, String>() {
+	
+	}
 
-			@Override
-			public void onSuccess(SendResult<String, String> result) {
-				log.info("Message sent {}", result.getRecordMetadata().offset());
+	@Scheduled(fixedDelay = 2000, initialDelay = 500)
+	public void messageCountMetric() {
+		List<Meter> metrics = meterRegistry.getMeters();
+		for (Meter meter : metrics) {
+			log.info("Metric {} ", meter.getId());
 
-			}
-
-			@Override
-			public void onFailure(Throwable ex) {
-				log.error("Error sending message", ex);
-
-			}
-
-			@Override
-			public void onFailure(KafkaProducerException ex) {
-				log.error("Error sending message ", ex);
-
-			}
-		});*/
-
+		}
+		double count = meterRegistry.get("kafka.producer.record.send.total").functionCounter().count();
+		log.info("Count {} ", count);
 	}
 
 }
